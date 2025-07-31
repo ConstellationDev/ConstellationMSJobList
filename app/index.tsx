@@ -1,5 +1,7 @@
+import { db } from '@/firebaseConfig';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
-import { SafeAreaView, FlatList, Text, View, StyleSheet, ListRenderItem, ActivityIndicator, TextInput } from 'react-native';
+import { ActivityIndicator, FlatList, ListRenderItem, SafeAreaView, StyleSheet, Text, TextInput, View } from 'react-native';
 import GetAllNominations from './services/ApiServices';
 
 type JobItem = {
@@ -31,15 +33,23 @@ const Item = (item: JobItem) => (
   </View>
 );
 
+type AppOpenProps = {
+  listOpen: boolean;
+};
+
+
 export default function HomeScreen() {
 
   const [isLoading, setIsLoading] = useState(true);
-
+  const [fsCheck, setFsCheck] = useState(true);
   const [myJobs, setMyJobs] = useState([]);
   const [search, setSearch] = useState('');
   const [filteredJobs, setFilteredJobs] = useState([]);
+  const [open, setOpen] = useState<AppOpenProps[]>([]);
 
   const renderItem: ListRenderItem<JobItem> = ({ item }) => <Item {...item} />;
+
+
 
   const getJobsV2 = async () => {
     await GetAllNominations()
@@ -54,10 +64,37 @@ export default function HomeScreen() {
   };
 
   useEffect(() => {
+    const userDocRef = doc(db, 'activity', 'gITAYJFkmjUCwP2G36ZP');
+
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as AppOpenProps;
+        setOpen([data]);
+        console.log("Current data: ", data);
+      } else {
+        console.log("No such document!");
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+
+  useEffect(() => {
     getJobsV2();
   }, []);
 
   const memoizedRenderdItem = useMemo(() => renderItem, [myJobs]);
+
+  if (open.length > 0 && open[0].listOpen === false) {
+    return (
+      <SafeAreaView style={{ flex: 1, justifyContent: 'center', alignItems: 'center', marginHorizontal: 20 }}>
+        <Text style={{ fontSize: 18, color: '#000' }}>
+          The job list is currently closed. Please check back later.
+        </Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
 
