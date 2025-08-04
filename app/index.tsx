@@ -70,7 +70,6 @@ export default function HomeScreen() {
       if (docSnap.exists()) {
         const data = docSnap.data() as AppOpenProps;
         setOpen([data]);
-        console.log("Current data: ", data);
       } else {
         console.log("No such document!");
       }
